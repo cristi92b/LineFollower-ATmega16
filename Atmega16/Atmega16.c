@@ -18,19 +18,25 @@
 #define check(port,pin) ((port&(1<<pin))!=0)
 
 //kp=1000 => kp=10 pentru alpha=100
-int kp=2345;
-int kd=2610;
-int ki=675; //crestem ki cand avem nevoie de variatii bruste pentru y()
+int kp=200;
+int kd=150;
+int ki=25; //crestem ki cand avem nevoie de variatii bruste pentru y()
 //int delay_ms=5; // Un MCU Atmel face 5 operatii elementare in virgula fixa pe nanosecunda pentru 20Mhz, deci am putea pune si un delay de oridinul microsecundelor (daca ar exista functie de delay in microsecunde)
-const int dt=5; // functia _delay_ms() cere ca delay-ul sa fie o constanta
+const int dt=1; // functia _delay_ms() cere ca delay-ul sa fie o constanta
 const int alpha=100; // a>=1 , preferabil 10 la o putere si crescut proportional cu delay-ul, default: alpha=1  -  cu cat alpha creste, cu atat este atenuat outputul functiei y (si gain-ul pentru motor, adica beta)
 int theta=25; // 0<=theta<=100    -  cand duty cycle-ul unui motor creste cu beta, duty-cycle-ul celuilalt motor este scazut cu gamma = theta/100 * beta
 int phi=170; // 0<=phi<=255   -   default motor duty cycle ,  se va modifica 100 cu 255 pentru MCU(uC)
 
+int inti_phi=170;
+int init_theta=25;
+
+int booster_phi=240;
+int booster_theta=5;
+
 int counter=0;
 int booster_enabled=0;
 
-#define maxCount 30
+#define maxCount 300
 
 #define minPhi 110
 
@@ -44,7 +50,7 @@ int booster_enabled=0;
 #define eps_a2 49
 #define eps_a3 343
 
-#define eps_a01 2
+#define eps_a01 0 //2
 #define eps_a12 14
 #define eps_a23 130
 
@@ -76,7 +82,7 @@ void togglePin(volatile uint8_t* PORT,uint8_t pin)
 	*PORT^=(1<<pin);
 }
 
-
+//compatibil cu ATmega16 si ATmega32
 void init_PWM() // folosim OC1A si OC1B de pe portul D
 {
 	TCCR1A |=(1<<COM1A1)|(1<<COM1B1)|(1<<WGM10); //mode 5 Fast-PWM 8-bit, non-inverting pentru amandoua
@@ -103,15 +109,13 @@ void init_PWM() // folosim OC1A si OC1B de pe portul D
 // 1 - enable, 0 - disable 
 void booster(uint8_t en_dis)
 {
-	static int init_phi=phi;
-	static int init_theta=theta;
 	if(en_dis!=0)
 	{
 		booster_enabled=1;
 		//override phi
-		phi = 240;
+		phi = booster_phi;
 		//override theta
-		theta = 5; //sau 10
+		theta = booster_theta; //sau 10
 	}
 	else
 	{
@@ -414,11 +418,13 @@ int main(void)
 	PORTD=0x00;
 	init_PWM(); //initializare PWM
 	PORTD=0b00000001; //RXD aprins , TXD stins
+	/*
 	while(1)
 	{
 		if(!check(PINB,0)) // push button
 			break;
 	}
+	*/
 	//DipSwitch(); //citire dip switch si modificare variabile globale (kp,kd,ki,theta si phi)
 	PORTD=0b10111010;  // //RXD stins , TXD aprins , PWM pornit (50%) - directie standard (inainte)
     while(1)
