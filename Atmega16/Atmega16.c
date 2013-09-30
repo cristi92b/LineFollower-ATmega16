@@ -3,10 +3,10 @@
  *
  * Created: 7/16/2013 3:13:00 PM
  *  Author: Cristi
- * Atmega16
+ * LineFollower-Atmega16
  */ 
 
-#define F_CPU 20000000 //pentru 20Mhz
+#define F_CPU 8000000 //pentru 8Mhz
 #include <avr/io.h>
 #include <util/delay.h>
 
@@ -18,25 +18,25 @@
 #define check(port,pin) ((port&(1<<pin))!=0)
 
 //kp=1000 => kp=10 pentru alpha=100
-int kp=200;
-int kd=150;
-int ki=25; //crestem ki cand avem nevoie de variatii bruste pentru y()
+int kp=750000;
+int kd=1250000;
+int ki=10000; //crestem ki cand avem nevoie de variatii bruste pentru y()
 //int delay_ms=5; // Un MCU Atmel face 5 operatii elementare in virgula fixa pe nanosecunda pentru 20Mhz, deci am putea pune si un delay de oridinul microsecundelor (daca ar exista functie de delay in microsecunde)
 const int dt=1; // functia _delay_ms() cere ca delay-ul sa fie o constanta
-const int alpha=100; // a>=1 , preferabil 10 la o putere si crescut proportional cu delay-ul, default: alpha=1  -  cu cat alpha creste, cu atat este atenuat outputul functiei y (si gain-ul pentru motor, adica beta)
-int theta=25; // 0<=theta<=100    -  cand duty cycle-ul unui motor creste cu beta, duty-cycle-ul celuilalt motor este scazut cu gamma = theta/100 * beta
-int phi=170; // 0<=phi<=255   -   default motor duty cycle ,  se va modifica 100 cu 255 pentru MCU(uC)
+const int alpha=1; // a>=1 , preferabil 10 la o putere si crescut proportional cu delay-ul, default: alpha=1  -  cu cat alpha creste, cu atat este atenuat outputul functiei y (si gain-ul pentru motor, adica beta)
+int theta=10; // 0<=theta<=100    -  cand duty cycle-ul unui motor creste cu beta, duty-cycle-ul celuilalt motor este scazut cu gamma = theta/100 * beta
+int phi=230; // 0<=phi<=255   -   default motor duty cycle ,  se va modifica 100 cu 255 pentru MCU(uC)
 
-int inti_phi=170;
-int init_theta=25;
+int init_phi=230;
+int init_theta=10;
 
-int booster_phi=240;
+int booster_phi=255;
 int booster_theta=5;
 
 int counter=0;
 int booster_enabled=0;
 
-#define maxCount 300
+#define maxCount 300000
 
 #define minPhi 110
 
@@ -46,13 +46,13 @@ int booster_enabled=0;
 
 
 #define eps_a0 0
-#define eps_a1 4
-#define eps_a2 49
-#define eps_a3 343
+#define eps_a1 400
+#define eps_a2 3400//4900
+#define eps_a3 34300
 
 #define eps_a01 0 //2
-#define eps_a12 14
-#define eps_a23 130
+#define eps_a12 1400
+#define eps_a23 34300 //130
 
 
 
@@ -131,13 +131,13 @@ void setRightMotor(uint8_t speed, uint8_t direction) //OC1B pe PD4
 	// PD0 si PD1 pentru directia motorului din stanga
 	if(direction==0)
 	{
-		setPinHigh(&PORTD,3);
-		setPinLow(&PORTD,2);
+		setPinHigh(&PORTD,2);
+		setPinLow(&PORTD,3);
 	}
 	else
 	{
-		setPinLow(&PORTD,3);
-		setPinHigh(&PORTD,2);
+		setPinLow(&PORTD,2);
+		setPinHigh(&PORTD,3);
 	}
 	
 }
@@ -148,13 +148,13 @@ void setLeftMotor(uint8_t speed,uint8_t direction) //OC1A pe PD5
 	// PD2 si PD3 pentru directia motorului din dreapta
 	if(direction==0)
 	{
-		setPinHigh(&PORTD,6);
-		setPinLow(&PORTD,7);
+		setPinHigh(&PORTD,7);
+		setPinLow(&PORTD,6);
 	}
 	else
 	{
-		setPinLow(&PORTD,6);
-		setPinHigh(&PORTD,7);
+		setPinLow(&PORTD,7);
+		setPinHigh(&PORTD,6);
 	}
 }
 
@@ -352,13 +352,13 @@ void interpret_y(int64_t y)
 		setRightMotor(phi,0);
 	}
 }
-
+/*
 void DipSwitch()
 {
 	//{kp,kd,ki,theta,phi}
 		//Practic, kp=100 in program insamna kp=1 la TSA;
 		//Aflam un Kp pentru care iesirea sistemului oscileaza cu amplitudine constanta, memoram si perioada de oscilatie T, aplicam metoda Zigler-Nichols (agresiva dar stabila in bucla inchisa)
-/* testing
+ testing
 		SETTINGS array[16]={  //64 biti * 16 = 1024 biti = 128 bytes
 			{200,0,0,25,180},		// 0 0 0 0
 			{400,0,0,25,180},			// 0 0 0 1
@@ -377,7 +377,7 @@ void DipSwitch()
 			{5000,0,0,25,180},			// 1 1 1 0
 			{60000,0,0,25,180}			// 1 1 1 1
 		};
-*/
+
 		SETTINGS array[16]={  //64 biti * 16 = 1024 biti = 128 bytes
 			{4200,2750,750,25,180},		// 0 0 0 0
 			{27500,19669,5824,25,180},			// 0 0 0 1
@@ -405,7 +405,7 @@ void DipSwitch()
 	theta=array[x].theta;
 	phi=array[x].phi;
 }
-
+*/
 
 int main(void)
 {
@@ -426,11 +426,12 @@ int main(void)
 	}
 	*/
 	//DipSwitch(); //citire dip switch si modificare variabile globale (kp,kd,ki,theta si phi)
+	_delay_ms(2000);
 	PORTD=0b10111010;  // //RXD stins , TXD aprins , PWM pornit (50%) - directie standard (inainte)
     while(1)
     {
 		interpret_y(y(readInput()));
-		_delay_ms(dt); //delay de 5 milisecunde
+		_delay_ms(dt); //delay de 1ms
     }
 	return 0;
 }
