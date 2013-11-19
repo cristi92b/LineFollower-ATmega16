@@ -40,35 +40,10 @@ float ki=0;
 
 #define eps_a4 7 //cand iese de pe traseu
 
-//#define ENABLE_BOOSTER
+
 //#define TRASEU_CU_INTRERUPERI
 
-#ifdef ENABLE_BOOSTER
-//booster-ul nu este implementat, nu definiti ENABLE_BOOSTER !!!
-int booster_phi=255;
-int booster_theta=5;
-int counter=0;
-int booster_enabled=0;
 
-void booster(uint8_t en_dis)
-{
-        if(en_dis!=0)
-        {
-                booster_enabled=1;
-                //override phi
-                phi = booster_phi;
-                //override theta
-                theta = booster_theta; //sau 10
-        }
-        else
-        {
-                booster_enabled=0;
-                phi=init_phi;
-                theta=init_theta;
-        }                
-}
-
-#endif
 
 
 int8_t sign_int8_t(int8_t);
@@ -133,8 +108,6 @@ int8_t readInput()
         uint8_t x=PINA;
         int8_t error=0;
 		static int8_t previous_error=0;
-        //prelucram intrarea
-        //int64_t y=check(x,0)*10+check(x,1)*8+check(x,2)*6+check(x,5)*(-6)+check(x,6)*(-8)+check(x,7)*(-10);
         switch(x)
         {
 			#ifndef TRASEU_CU_INTRERUPERI
@@ -250,19 +223,7 @@ int16_t limit(float x) //returneaza ceva intre -145 si 145
 		return round(x);
 	}
 }
-/*
-uint8_t limit2(int16_t x)
-{
-	if(x>255)
-	{
-		return 255;
-	}
-	else
-	{
-		return x
-	}
-}
-*/
+
 
 float y(int8_t e) //y=output u=input
 {
@@ -272,28 +233,6 @@ float y(int8_t e) //y=output u=input
 
         derivative=(e-pe)/dt;
         output = kp*e + ki*integral + kd*derivative;
-        
-        //activate booster if error is 0 for maxCount times (dt)
-#ifdef ENABLE_BOOSTER //neimplementat!!!
-        if(e==0)
-        {
-                        if(counter<maxCount)
-                        {
-                                counter++;
-                        }
-                        else
-                        {
-                                if(booster_enabled==0)
-                                        booster(1);
-                        }
-        }
-        else
-        {
-                if(booster_enabled!=0)
-                        booster(0);
-                counter=0;
-        }
-#endif
         
         pe=e;
         return output;
